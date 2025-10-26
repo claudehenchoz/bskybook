@@ -3,6 +3,7 @@
 import io
 import logging
 import math
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -32,6 +33,33 @@ class CoverGenerator:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
+
+    @staticmethod
+    def _get_ordinal_suffix(day: int) -> str:
+        """Get the ordinal suffix for a day number.
+
+        Args:
+            day: Day of month (1-31)
+
+        Returns:
+            Ordinal suffix ('st', 'nd', 'rd', or 'th')
+        """
+        if 10 <= day % 100 <= 20:
+            return 'th'
+        else:
+            return {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
+
+    @staticmethod
+    def _format_creation_date() -> str:
+        """Format the current date for the cover subtitle.
+
+        Returns:
+            Formatted date string like "Sunday, 26th of October 2025"
+        """
+        now = datetime.now()
+        day = now.day
+        suffix = CoverGenerator._get_ordinal_suffix(day)
+        return now.strftime(f"%A, {day}{suffix} of %B %Y")
 
     def generate_cover(
         self,
@@ -215,25 +243,45 @@ class CoverGenerator:
             fill=(0, 0, 0, 180)
         )
 
-        # Try to use a nice font, fall back to default
+        # Try to use nice fonts, fall back to default
         try:
-            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 60)
+            title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 60)
+            subtitle_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
         except:
             try:
-                font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)
+                title_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 60)
+                subtitle_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 24)
             except:
-                font = ImageFont.load_default()
+                title_font = ImageFont.load_default()
+                subtitle_font = ImageFont.load_default()
+
+        # Get creation date subtitle
+        creation_date = self._format_creation_date()
+        subtitle = f"Created on {creation_date}, by bskybook"
+
+        # Get text bounding boxes for centering
+        title_bbox = draw.textbbox((0, 0), title, font=title_font)
+        title_width = title_bbox[2] - title_bbox[0]
+        title_height = title_bbox[3] - title_bbox[1]
+
+        subtitle_bbox = draw.textbbox((0, 0), subtitle, font=subtitle_font)
+        subtitle_width = subtitle_bbox[2] - subtitle_bbox[0]
+        subtitle_height = subtitle_bbox[3] - subtitle_bbox[1]
+
+        # Calculate vertical spacing
+        spacing = 10
+        total_height = title_height + spacing + subtitle_height
+        start_y = img.height - rect_height // 2 - total_height // 2
 
         # Draw title text
-        # Get text bounding box for centering
-        bbox = draw.textbbox((0, 0), title, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
+        title_x = (img.width - title_width) // 2
+        title_y = start_y
+        draw.text((title_x, title_y), title, fill=(255, 255, 255, 255), font=title_font)
 
-        x = (img.width - text_width) // 2
-        y = img.height - rect_height // 2 - text_height // 2
-
-        draw.text((x, y), title, fill=(255, 255, 255, 255), font=font)
+        # Draw subtitle text
+        subtitle_x = (img.width - subtitle_width) // 2
+        subtitle_y = start_y + title_height + spacing
+        draw.text((subtitle_x, subtitle_y), subtitle, fill=(200, 200, 200, 255), font=subtitle_font)
 
         # Composite overlay onto image
         overlay_img.paste(Image.alpha_composite(overlay_img.convert('RGBA'), overlay).convert('RGB'))
@@ -252,21 +300,45 @@ class CoverGenerator:
         img = Image.new('RGB', (self.COVER_WIDTH, self.COVER_HEIGHT), color='#2C3E50')
         draw = ImageDraw.Draw(img)
 
-        # Try to use a nice font
+        # Try to use nice fonts
         try:
             title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 80)
+            subtitle_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 30)
         except:
-            title_font = ImageFont.load_default()
+            try:
+                title_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 80)
+                subtitle_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 30)
+            except:
+                title_font = ImageFont.load_default()
+                subtitle_font = ImageFont.load_default()
+
+        # Get creation date subtitle
+        creation_date = self._format_creation_date()
+        subtitle = f"Created on {creation_date}, by bskybook"
+
+        # Get text bounding boxes
+        title_bbox = draw.textbbox((0, 0), title, font=title_font)
+        title_width = title_bbox[2] - title_bbox[0]
+        title_height = title_bbox[3] - title_bbox[1]
+
+        subtitle_bbox = draw.textbbox((0, 0), subtitle, font=subtitle_font)
+        subtitle_width = subtitle_bbox[2] - subtitle_bbox[0]
+        subtitle_height = subtitle_bbox[3] - subtitle_bbox[1]
+
+        # Calculate vertical spacing
+        spacing = 20
+        total_height = title_height + spacing + subtitle_height
+        start_y = (self.COVER_HEIGHT - total_height) // 2
 
         # Draw title
-        bbox = draw.textbbox((0, 0), title, font=title_font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
+        title_x = (self.COVER_WIDTH - title_width) // 2
+        title_y = start_y
+        draw.text((title_x, title_y), title, fill='white', font=title_font)
 
-        x = (self.COVER_WIDTH - text_width) // 2
-        y = (self.COVER_HEIGHT - text_height) // 2
-
-        draw.text((x, y), title, fill='white', font=title_font)
+        # Draw subtitle
+        subtitle_x = (self.COVER_WIDTH - subtitle_width) // 2
+        subtitle_y = start_y + title_height + spacing
+        draw.text((subtitle_x, subtitle_y), subtitle, fill='#cccccc', font=subtitle_font)
 
         return img
 
