@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bskybook"
+version = "0.1.0"
+description = "Create EPUB 2 ebooks from BlueSky feeds"
+authors = [{name = "Claude Henchoz", email = "claude.henchoz@gmail.com"}]
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "requests>=2.31.0",
+    "trafilatura>=2.0.0",
+    "Pillow>=10.0.0",
+    "click>=8.1.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
+]
+
+[project.scripts]
+bskybook = "bskybook.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/claudehenchoz/bskybook"
+Repository = "https://github.com/claudehenchoz/bskybook"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bskybook*"]
