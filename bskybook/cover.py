@@ -115,7 +115,7 @@ class CoverGenerator:
         """
         images = []
 
-        for url in urls[:20]:  # Limit to 20 images
+        for url in urls[:10]:  # Limit to 10 images for better visual appearance
             try:
                 logger.debug(f"Downloading image: {url}")
                 response = self.session.get(url, timeout=self.timeout)
