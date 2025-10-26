@@ -112,7 +112,7 @@ def main(profile: str, count: int, output: Optional[Path], verbose: bool) -> Non
         generator = EPUBGenerator()
         generator.create_epub(
             articles=articles,
-            title=f"{handle} - BlueSky Book",
+            title=f"{handle} (bskybook)",
             author=f"@{handle}",
             cover_data=cover_data,
             output_path=output

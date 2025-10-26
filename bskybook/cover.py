@@ -109,68 +109,89 @@ class CoverGenerator:
     def _create_mosaic(self, images: list[Image.Image], title: str) -> Image.Image:
         """Create a mosaic layout from images.
 
+        Uses a 2-column layout optimized for portrait covers with landscape images.
+        Images are center-cropped to fill cells completely with no whitespace.
+
         Args:
-            images: List of PIL images
+            images: List of PIL images (assumed to be landscape)
             title: Title to overlay on the cover
 
         Returns:
             Cover image
         """
-        # Calculate grid dimensions
+        # Use 2 columns for portrait orientation with landscape images
+        cols = 2
         num_images = len(images)
-        cols = math.ceil(math.sqrt(num_images))
         rows = math.ceil(num_images / cols)
 
-        # Calculate cell size
+        # Reserve space for title overlay at bottom
+        title_height = 200
+        available_height = self.COVER_HEIGHT - title_height
+
+        # Calculate cell dimensions
         cell_width = self.COVER_WIDTH // cols
-        cell_height = self.COVER_HEIGHT // rows
+        cell_height = available_height // rows
 
         # Create canvas
-        canvas = Image.new('RGB', (self.COVER_WIDTH, self.COVER_HEIGHT), color='white')
+        canvas = Image.new('RGB', (self.COVER_WIDTH, self.COVER_HEIGHT), color='#1a1a1a')
 
         # Place images in grid
         for idx, img in enumerate(images):
             row = idx // cols
             col = idx % cols
 
-            # Resize image to fit cell while maintaining aspect ratio
-            img_resized = self._resize_image(img, cell_width, cell_height)
+            # Crop image to fill cell completely (no whitespace)
+            img_cropped = self._crop_to_fill(img, cell_width, cell_height)
 
-            # Calculate position (center in cell)
-            x = col * cell_width + (cell_width - img_resized.width) // 2
-            y = row * cell_height + (cell_height - img_resized.height) // 2
+            # Calculate position (images fill cells edge-to-edge)
+            x = col * cell_width
+            y = row * cell_height
 
-            canvas.paste(img_resized, (x, y))
+            canvas.paste(img_cropped, (x, y))
 
         # Add title overlay
         canvas = self._add_title_overlay(canvas, title)
 
         return canvas
 
-    def _resize_image(self, img: Image.Image, max_width: int, max_height: int) -> Image.Image:
-        """Resize image to fit within dimensions while maintaining aspect ratio.
+    def _crop_to_fill(self, img: Image.Image, target_width: int, target_height: int) -> Image.Image:
+        """Crop image to fill target dimensions completely (center crop).
+
+        Scales the image so it covers the target dimensions, then crops excess
+        from the center. This ensures no whitespace in the mosaic.
 
         Args:
             img: PIL Image
-            max_width: Maximum width
-            max_height: Maximum height
+            target_width: Target width
+            target_height: Target height
 
         Returns:
-            Resized image
+            Cropped image that exactly fills target dimensions
         """
         img_ratio = img.width / img.height
-        target_ratio = max_width / max_height
+        target_ratio = target_width / target_height
 
+        # Scale so the image covers the target (one dimension will be larger)
         if img_ratio > target_ratio:
-            # Width is the limiting factor
-            new_width = max_width
-            new_height = int(max_width / img_ratio)
+            # Image is wider - scale by height, crop width
+            scale_height = target_height
+            scale_width = int(target_height * img_ratio)
         else:
-            # Height is the limiting factor
-            new_height = max_height
-            new_width = int(max_height * img_ratio)
+            # Image is taller - scale by width, crop height
+            scale_width = target_width
+            scale_height = int(target_width / img_ratio)
 
-        return img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        # Resize image to cover target dimensions
+        img_scaled = img.resize((scale_width, scale_height), Image.Resampling.LANCZOS)
+
+        # Calculate crop box (center crop)
+        left = (scale_width - target_width) // 2
+        top = (scale_height - target_height) // 2
+        right = left + target_width
+        bottom = top + target_height
+
+        # Crop to exact target dimensions
+        return img_scaled.crop((left, top, right, bottom))
 
     def _add_title_overlay(self, img: Image.Image, title: str) -> Image.Image:
         """Add a semi-transparent title overlay to the image.
