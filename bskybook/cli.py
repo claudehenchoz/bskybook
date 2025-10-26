@@ -104,7 +104,7 @@ def main(profile: str, count: int, output: Optional[Path], verbose: bool) -> Non
         with CoverGenerator() as cover_gen:
             cover_data = cover_gen.generate_cover(
                 articles,
-                title=f"{handle} - BlueSky Book"
+                title=f"{handle}"
             )
 
         # Step 5: Create EPUB
