@@ -18,8 +18,8 @@ class CoverGenerator:
     """Generates cover images from article thumbnails."""
 
     # E-reader resolution
-    COVER_WIDTH = 1680
-    COVER_HEIGHT = 1264
+    COVER_WIDTH = 1264
+    COVER_HEIGHT = 1680
 
     def __init__(self, timeout: int = 30):
         """Initialize the cover generator.
